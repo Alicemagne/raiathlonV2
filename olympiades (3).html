@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<title>Olympiades — Classement en direct</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0E1626;
+    --panel: #182A45;
+    --panel-light: #1F3557;
+    --line: #2C4368;
+    --gold: #E7B23C;
+    --silver: #C7CEDA;
+    --bronze: #C97A4A;
+    --win: #3FA65C;
+    --loss: #D9534F;
+    --text: #F5F5F0;
+    --muted: #93A6C4;
+    --radius: 10px;
+  }
+  *{ box-sizing: border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', system-ui, sans-serif;
+    min-height: 100vh;
+    padding-bottom: 74px;
+    -webkit-tap-highlight-color: transparent;
+  }
+  h1,h2,h3, .display{
+    font-family: 'Oswald', sans-serif;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    margin: 0;
+  }
+  header.top{
+    padding: 22px 18px 16px;
+    border-bottom: 1px solid var(--line);
+    background: linear-gradient(180deg, #12203A 0%, var(--bg) 100%);
+  }
+  header.top h1{ font-size: 22px; color: var(--gold); }
+  header.top p{ margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+
+  main{ padding: 16px 14px 24px; max-width: 640px; margin: 0 auto; }
+
+  nav.tabbar{
+    position: fixed; bottom: 0; left: 0; right: 0;
+    display: flex;
+    background: var(--panel);
+    border-top: 1px solid var(--line);
+    padding: 6px 6px calc(6px + env(safe-area-inset-bottom));
+    z-index: 40;
+  }
+  nav.tabbar button{
+    flex: 1;
+    background: none; border: none; color: var(--muted);
+    font-family: 'Inter'; font-size: 12px; font-weight: 600;
+    padding: 8px 4px 6px;
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  nav.tabbar button .ico{ font-size: 19px; line-height: 1; }
+  nav.tabbar button.active{ color: var(--gold); background: rgba(231,178,60,0.08); }
+
+  .card{
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    margin-bottom: 12px;
+  }
+  .card.tappable{ cursor: pointer; }
+  .card.tappable:active{ background: var(--panel-light); }
+
+  .row{ display:flex; align-items:center; justify-content: space-between; gap: 10px; }
+
+  /* Classement general */
+  .rank-badge{
+    width: 34px; height: 34px; border-radius: 50%;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Oswald'; font-weight:700; font-size: 15px;
+    background: var(--panel-light); color: var(--text); flex-shrink:0;
+  }
+  .rank-badge.r1{ background: var(--gold); color:#251A03; }
+  .rank-badge.r2{ background: var(--silver); color:#22262E; }
+  .rank-badge.r3{ background: var(--bronze); color:#2A1608; }
+  .team-name{ font-weight: 600; font-size: 15.5px; }
+  .team-meta{ color: var(--muted); font-size: 12px; margin-top: 2px; }
+  .avg-score{ font-family:'Oswald'; font-size: 19px; color: var(--gold); font-variant-numeric: tabular-nums; }
+  .avg-score.none{ color: var(--muted); font-size: 15px; }
+
+  .section-label{
+    color: var(--muted); font-size: 12.5px; font-weight: 600;
+    margin: 20px 0 8px; text-transform: none;
+  }
+  .section-label:first-child{ margin-top: 0; }
+
+  /* Games list */
+  .game-title{ font-size: 15.5px; font-weight: 600; }
+  .game-sub{ color: var(--muted); font-size: 12.5px; margin-top: 2px; }
+  .status-pill{
+    font-size: 11.5px; font-weight: 600; padding: 4px 9px; border-radius: 20px;
+    white-space: nowrap;
+  }
+  .status-pill.done{ background: rgba(63,166,92,0.16); color: var(--win); }
+  .status-pill.partial{ background: rgba(231,178,60,0.16); color: var(--gold); }
+  .status-pill.empty{ background: rgba(147,166,196,0.14); color: var(--muted); }
+  .chevron{ color: var(--muted); font-size: 18px; }
+
+  /* Game detail */
+  .backbtn{
+    display:flex; align-items:center; gap:6px; background:none; border:none;
+    color: var(--muted); font-family:'Inter'; font-size: 14px; font-weight:600;
+    padding: 4px 0 14px; cursor:pointer;
+  }
+  .team-row{
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 10px 0; border-bottom: 1px solid var(--line); gap: 10px;
+  }
+  .team-row:last-child{ border-bottom: none; }
+  .rank-tag{
+    font-family:'Oswald'; font-size:13px; color: var(--muted); width: 22px; text-align:center; flex-shrink:0;
+  }
+  .rank-tag.top{ color: var(--gold); font-weight:700; }
+  input[type=number], input[type=text]{
+    background: var(--bg); border: 1px solid var(--line); color: var(--text);
+    border-radius: 7px; padding: 8px 7px; font-family:'Inter'; font-size: 14px;
+    width: 62px; text-align: center;
+  }
+  input[type=number]::-webkit-inner-spin-button{ opacity: 0.6; }
+  input[type=text].team-name-input{ width: 100%; text-align:left; }
+  .time-inputs{ display:flex; align-items:center; gap: 4px; }
+  .time-inputs span{ color: var(--muted); font-size: 13px; }
+  .unit-label{ color: var(--muted); font-size: 12px; margin-left: 4px; }
+
+  .duel-pair{
+    background: var(--bg); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 12px; margin-bottom: 10px;
+  }
+  .duel-pair .vs{ text-align:center; color: var(--muted); font-size:11.5px; margin: 6px 0; letter-spacing: 0.05em; }
+  .duel-side{ display:flex; align-items:center; justify-content:space-between; gap: 10px; }
+  .duel-side .name{ font-weight:600; font-size: 14.5px; flex: 1; }
+  .win-tag{ font-size: 11px; font-weight:700; color: var(--win); }
+  .lose-tag{ font-size: 11px; font-weight:700; color: var(--loss); }
+
+  .btn{
+    display:block; width:100%; text-align:center; padding: 13px;
+    background: var(--gold); color: #241A04; border:none; border-radius: 9px;
+    font-family:'Inter'; font-weight:700; font-size: 14.5px; cursor:pointer; margin-top: 6px;
+  }
+  .btn:active{ opacity: 0.85; }
+  .btn.secondary{ background: var(--panel-light); color: var(--text); border: 1px solid var(--line); }
+  .btn.danger{ background: rgba(217,83,79,0.14); color: var(--loss); border: 1px solid rgba(217,83,79,0.4); }
+
+  .empty-note{ color: var(--muted); font-size: 13.5px; line-height: 1.5; padding: 6px 0 2px; }
+
+  /* Modal */
+  .overlay{
+    position: fixed; inset:0; background: rgba(6,10,18,0.72);
+    display:flex; align-items:flex-end; justify-content:center; z-index: 60;
+  }
+  .modal{
+    background: var(--panel); border: 1px solid var(--line); border-radius: 16px 16px 0 0;
+    padding: 20px 18px calc(18px + env(safe-area-inset-bottom)); width:100%; max-width: 640px;
+  }
+  .modal h3{ font-size: 17px; margin-bottom: 4px; }
+  .modal p{ color: var(--muted); font-size: 13.5px; margin: 0 0 14px; line-height:1.5; }
+  .modal ul{ margin: 0 0 16px; padding-left: 18px; color: var(--text); font-size: 13.5px; }
+  .modal ul li{ margin-bottom: 3px; }
+  .toast{
+    position: fixed; top: 14px; left:50%; transform: translateX(-50%);
+    background: var(--win); color: #0C2213; font-weight:700; font-size: 13.5px;
+    padding: 10px 18px; border-radius: 30px; z-index: 80; box-shadow: 0 4px 18px rgba(0,0,0,0.35);
+  }
+  .info-note{
+    font-size: 12px; color: var(--muted); background: rgba(147,166,196,0.08);
+    border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px; margin-bottom: 14px; line-height:1.5;
+  }
+</style>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+</head>
+<body>
+
+<header class="top">
+  <h1>🏅 Olympiades — Classement en direct</h1>
+  <p id="headerSub">Chargement…</p>
+</header>
+
+<main id="app"></main>
+
+<nav class="tabbar">
+  <button data-tab="classement" class="active"><span class="ico">🏆</span>Classement</button>
+  <button data-tab="jeux"><span class="ico">🎯</span>Jeux</button>
+  <button data-tab="equipes"><span class="ico">👥</span>Équipes</button>
+</nav>
+
+<script>
+/* ============================= CONFIG ============================= */
+
+const TEAM_IDS = [1,2,3,4,5,6,7,8,9,10];
+
+// Adversaires différents pour chaque jeu en duel (issus du planning des affrontements,
+// généré par round-robin pour qu'aucune équipe ne rejoue deux fois le même adversaire).
+const GAMES = [
+  { id:1, name:"Béret", type:"duel", metricLabel:"manches gagnées", unit:"manches", direction:"higher",
+    pairs: [[1,10],[2,9],[3,8],[4,7],[5,6]] },
+  { id:2, name:"Mimes", type:"individual_number", metricLabel:"mimes remportés", unit:"mimes", direction:"higher" },
+  { id:3, name:"Concours puzzle", type:"individual_time", metricLabel:"temps", direction:"lower" },
+  { id:4, name:"Foot savonneux", type:"duel", metricLabel:"buts marqués", unit:"buts", direction:"higher",
+    pairs: [[1,9],[10,8],[2,7],[3,6],[4,5]] },
+  { id:5, name:"Tir à la corde", type:"duel", metricLabel:"manches gagnées", unit:"manches", direction:"higher",
+    pairs: [[1,8],[9,7],[10,6],[2,5],[3,4]] },
+  { id:6, name:"Béret perruque", type:"duel", metricLabel:"manches gagnées", unit:"manches", direction:"higher",
+    pairs: [[1,7],[8,6],[9,5],[10,4],[2,3]] },
+  { id:7, name:"Catapulte verre", type:"individual_time", metricLabel:"temps", direction:"lower" },
+  { id:8, name:"Bassine chaussette", type:"individual_time_volume", metricLabel:"temps + eau restante", direction:"lower" },
+  { id:9, name:"Relai", type:"individual_time", metricLabel:"temps", direction:"lower" },
+  { id:10, name:"Parcours du combattant", type:"individual_time", metricLabel:"temps", direction:"lower" },
+];
+
+/* ============================= STATE ============================= */
+
+let teams = TEAM_IDS.map(id => ({ id, name: "Équipe " + id }));
+let results = {}; // gameId -> raw result object
+let currentTab = "classement";
+let currentGameId = null;
+
+/* ============================= FIREBASE CONFIG ============================= */
+// 1. Va sur https://console.firebase.google.com, crée un projet gratuit.
+// 2. Ajoute une "Realtime Database" (mode test).
+// 3. Ajoute une application Web au projet, copie la configuration fournie,
+//    et colle-la ci-dessous à la place des valeurs "A_REMPLACER".
+const firebaseConfig = {
+  apiKey: "AIzaSyACY9RQ1tt22VEvCfn6Obv83xyuEu0A9qE",
+  authDomain: "raiathlon26v2.firebaseapp.com",
+  databaseURL: "https://raiathlon26v2-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "raiathlon26v2",
+  storageBucket: "raiathlon26v2.firebasestorage.app",
+  messagingSenderId: "540261701453",
+  appId: "1:540261701453:web:378981472f43163224c904"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+/* ============================= STORAGE HELPERS (Firebase) ============================= */
+
+async function storageGet(key){
+  try{
+    const snap = await db.ref(key).once("value");
+    return snap.exists() ? snap.val() : null;
+  }catch(e){ console.error("storage get failed", key, e); return null; }
+}
+async function storageSet(key, value){
+  try{
+    await db.ref(key).set(value);
+    return true;
+  }catch(e){ console.error("storage set failed", key, e); return false; }
+}
+
+// Écoute les changements en direct : dès qu'un arbitre enregistre un résultat
+// sur son téléphone, tous les autres appareils se mettent à jour automatiquement,
+// sans avoir besoin de rafraîchir la page.
+let firstLoadDone = { teams:false, games:false };
+function markFirstLoad(part){
+  firstLoadDone[part] = true;
+  if(firstLoadDone.teams && firstLoadDone.games){
+    document.getElementById("headerSub").textContent = TEAM_IDS.length + " équipes · " + GAMES.length + " jeux · connecté en direct";
+    renderCurrent();
+  }
+}
+
+function attachRealtimeListeners(){
+  db.ref("teams").on("value", snap => {
+    if(snap.exists()){ teams = snap.val(); }
+    else { storageSet("teams", teams); }
+    markFirstLoad("teams");
+    if(currentGameId === null) renderCurrent();
+  }, err => console.error("Erreur de connexion Firebase (teams):", err));
+
+  let gamesLoaded = 0;
+  GAMES.forEach(g => {
+    db.ref("game_" + g.id).on("value", snap => {
+      results[g.id] = snap.exists() ? snap.val() : {};
+      gamesLoaded++;
+      if(gamesLoaded >= GAMES.length) markFirstLoad("games");
+      if(currentGameId === null) renderCurrent();
+    }, err => console.error("Erreur de connexion Firebase (game " + g.id + "):", err));
+  });
+}
+
+function teamById(id){ return teams.find(t => t.id === id); }
+
+/* ============================= RANKING LOGIC ============================= */
+
+// Generic: sorts items with comparator, assigns ._rank (standard/skip ranking)
+function assignRanks(items, cmp){
+  const sorted = [...items].sort(cmp);
+  sorted.forEach((item, i) => {
+    if(i === 0){ item._rank = 1; }
+    else{
+      item._rank = (cmp(sorted[i-1], item) === 0) ? sorted[i-1]._rank : i + 1;
+    }
+  });
+  return sorted;
+}
+
+function timeVal(t){ return (t === null || t === undefined || t === "") ? null : Number(t); }
+
+// Returns Map(teamId -> rank) of teams that have actually played this game
+function computeGameRanking(game, data){
+  data = data || {};
+  const map = {};
+
+  if(game.type === "duel"){
+    const matches = data.matches || {};
+    const list = [];
+    game.pairs.forEach((pair, idx) => {
+      const m = matches[idx];
+      if(!m) return;
+      const sA = timeVal(m.scoreA), sB = timeVal(m.scoreB);
+      if(sA === null || sB === null) return;
+      const aWins = game.direction === "higher" ? sA > sB : sA < sB;
+      // ties within a duel are not expected for these games, but handle gracefully: skip if exactly equal
+      if(sA === sB) return;
+      list.push({ teamId: pair[0], group: aWins ? 0 : 1, score: sA });
+      list.push({ teamId: pair[1], group: aWins ? 1 : 0, score: sB });
+    });
+    const cmp = (a,b) => {
+      if(a.group !== b.group) return a.group - b.group;
+      return game.direction === "higher" ? b.score - a.score : a.score - b.score;
+    };
+    assignRanks(list, cmp).forEach(it => map[it.teamId] = it._rank);
+
+  } else if(game.type === "individual_time_volume"){
+    const scores = data.scores || {};
+    const list = [];
+    TEAM_IDS.forEach(id => {
+      const s = scores[id];
+      if(!s || timeVal(s.time) === null) return;
+      list.push({ teamId: id, time: timeVal(s.time), volume: timeVal(s.volume) });
+    });
+    const cmp = (a,b) => {
+      if(a.time !== b.time) return a.time - b.time;
+      const va = a.volume === null ? -Infinity : a.volume;
+      const vb = b.volume === null ? -Infinity : b.volume;
+      return vb - va;
+    };
+    assignRanks(list, cmp).forEach(it => map[it.teamId] = it._rank);
+
+  } else {
+    // individual_time or individual_number
+    const scores = data.scores || {};
+    const list = [];
+    TEAM_IDS.forEach(id => {
+      const v = timeVal(scores[id]);
+      if(v === null) return;
+      list.push({ teamId: id, value: v });
+    });
+    const cmp = (a,b) => game.direction === "higher" ? b.value - a.value : a.value - b.value;
+    assignRanks(list, cmp).forEach(it => map[it.teamId] = it._rank);
+  }
+  return map;
+}
+
+function computeOverall(){
+  const perTeamRanks = {};
+  TEAM_IDS.forEach(id => perTeamRanks[id] = []);
+
+  GAMES.forEach(g => {
+    const rankMap = computeGameRanking(g, results[g.id]);
+    Object.entries(rankMap).forEach(([teamId, rank]) => {
+      perTeamRanks[teamId].push(rank);
+    });
+  });
+
+  const list = teams.map(t => {
+    const ranks = perTeamRanks[t.id] || [];
+    const avg = ranks.length ? ranks.reduce((a,b)=>a+b,0) / ranks.length : null;
+    return { teamId: t.id, name: t.name, avg, gamesPlayed: ranks.length };
+  });
+
+  const cmp = (a,b) => {
+    if(a.avg === null && b.avg === null) return 0;
+    if(a.avg === null) return 1;
+    if(b.avg === null) return -1;
+    return a.avg - b.avg;
+  };
+  return assignRanks(list, cmp);
+}
+
+function gameStatus(game){
+  if(game.type === "duel"){
+    const matches = (results[game.id] || {}).matches || {};
+    const played = game.pairs.filter((p,idx) => {
+      const m = matches[idx];
+      return m && timeVal(m.scoreA) !== null && timeVal(m.scoreB) !== null;
+    }).length;
+    return { played, total: game.pairs.length };
+  } else if(game.type === "individual_time_volume"){
+    const scores = (results[game.id] || {}).scores || {};
+    const played = TEAM_IDS.filter(id => scores[id] && timeVal(scores[id].time) !== null).length;
+    return { played, total: TEAM_IDS.length };
+  } else {
+    const scores = (results[game.id] || {}).scores || {};
+    const played = TEAM_IDS.filter(id => timeVal(scores[id]) !== null).length;
+    return { played, total: TEAM_IDS.length };
+  }
+}
+
+/* ============================= FORMAT HELPERS ============================= */
+
+function fmtTime(totalSeconds){
+  if(totalSeconds === null || totalSeconds === undefined) return "—";
+  const m = Math.floor(totalSeconds / 60);
+  const s = Math.round(totalSeconds % 60);
+  return (m > 0 ? m + "min " : "") + s + "s";
+}
+function fmtAvg(avg){ return avg === null ? "—" : avg.toFixed(2); }
+function esc(str){ const d = document.createElement("div"); d.textContent = str; return d.innerHTML; }
+
+/* ============================= RENDER: CLASSEMENT ============================= */
+
+function renderClassement(){
+  const overall = computeOverall();
+  const totalGamesPlayed = GAMES.reduce((acc,g) => {
+    const st = gameStatus(g);
+    return acc + (st.played === st.total ? 1 : 0);
+  }, 0);
+
+  let html = `<div class="section-label">Classement général — moyenne des classements sur les jeux joués</div>`;
+  overall.forEach(item => {
+    const badgeClass = item.avg === null ? "" : (item._rank === 1 ? "r1" : item._rank === 2 ? "r2" : item._rank === 3 ? "r3" : "");
+    html += `
+      <div class="card row">
+        <div class="row" style="gap:12px; flex:1;">
+          <div class="rank-badge ${badgeClass}">${item.avg === null ? "–" : item._rank}</div>
+          <div>
+            <div class="team-name">${esc(item.name)}</div>
+            <div class="team-meta">${item.gamesPlayed} / ${GAMES.length} jeux joués</div>
+          </div>
+        </div>
+        <div class="avg-score ${item.avg === null ? "none" : ""}">${fmtAvg(item.avg)}</div>
+      </div>`;
+  });
+
+  html += `<div class="section-label">Avancement</div>
+    <div class="card"><div class="row"><span class="game-sub">Jeux terminés</span><span class="team-meta" style="color:var(--text); font-weight:600;">${totalGamesPlayed} / ${GAMES.length}</span></div></div>`;
+
+  document.getElementById("app").innerHTML = html;
+  document.getElementById("headerSub").textContent = TEAM_IDS.length + " équipes · " + GAMES.length + " jeux · mis à jour en direct";
+}
+
+/* ============================= RENDER: JEUX (list) ============================= */
+
+function renderJeuxList(){
+  let html = `<div class="section-label">Jeux en duel</div>`;
+  GAMES.filter(g => g.type === "duel").forEach(g => html += gameListCard(g));
+  html += `<div class="section-label">Jeux individuels</div>`;
+  GAMES.filter(g => g.type !== "duel").forEach(g => html += gameListCard(g));
+  document.getElementById("app").innerHTML = html;
+  document.getElementById("headerSub").textContent = "Touchez un jeu pour saisir les résultats";
+
+  document.querySelectorAll("[data-game]").forEach(el => {
+    el.addEventListener("click", () => openGame(Number(el.getAttribute("data-game"))));
+  });
+}
+
+function gameListCard(g){
+  const st = gameStatus(g);
+  let pillClass = "empty", pillText = "Pas commencé";
+  if(st.played === st.total){ pillClass = "done"; pillText = "Terminé"; }
+  else if(st.played > 0){ pillClass = "partial"; pillText = st.played + "/" + st.total; }
+  return `
+    <div class="card tappable row" data-game="${g.id}">
+      <div>
+        <div class="game-title">${esc(g.name)}</div>
+        <div class="game-sub">${g.type === "duel" ? "Duels · " : ""}${esc(g.metricLabel)}</div>
+      </div>
+      <div class="row" style="gap:8px;">
+        <span class="status-pill ${pillClass}">${pillText}</span>
+        <span class="chevron">›</span>
+      </div>
+    </div>`;
+}
+
+/* ============================= RENDER: GAME DETAIL ============================= */
+
+function openGame(gameId){
+  currentGameId = gameId;
+  renderGameDetail();
+}
+
+function renderGameDetail(){
+  const game = GAMES.find(g => g.id === currentGameId);
+  const data = results[game.id] || {};
+  const rankMap = computeGameRanking(game, data);
+
+  let html = `<button class="backbtn" id="backBtn">‹ Retour aux jeux</button>
+    <h2 style="font-size:20px; margin-bottom:2px;">${esc(game.name)}</h2>
+    <div class="game-sub" style="margin-bottom:16px;">${game.type === "duel" ? "Format duel · " : "Individuel · "}${esc(game.metricLabel)}${game.direction === "lower" ? " (le plus petit gagne)" : " (le plus grand gagne)"}</div>`;
+
+  if(game.type === "duel"){
+    html += renderDuelForm(game, data, rankMap);
+  } else if(game.type === "individual_time_volume"){
+    html += renderTimeVolumeForm(game, data, rankMap);
+  } else if(game.type === "individual_time"){
+    html += renderIndividualForm(game, data, rankMap, true);
+  } else {
+    html += renderIndividualForm(game, data, rankMap, false);
+  }
+
+  html += `<button class="btn" id="saveBtn">Enregistrer les résultats</button>
+    <button class="btn secondary" id="resetBtn" style="margin-top:10px;">Réinitialiser ce jeu</button>`;
+
+  document.getElementById("app").innerHTML = html;
+  document.getElementById("backBtn").addEventListener("click", () => { currentGameId = null; switchTab("jeux"); });
+  document.getElementById("saveBtn").addEventListener("click", () => confirmSaveGame(game));
+  document.getElementById("resetBtn").addEventListener("click", () => confirmResetGame(game));
+}
+
+function timeInputs(idPrefix, presetSeconds){
+  const m = presetSeconds !== null && presetSeconds !== undefined ? Math.floor(presetSeconds/60) : "";
+  const s = presetSeconds !== null && presetSeconds !== undefined ? Math.round(presetSeconds%60) : "";
+  return `<div class="time-inputs">
+    <input type="number" min="0" id="${idPrefix}_m" placeholder="0" value="${m}"><span>min</span>
+    <input type="number" min="0" max="59" id="${idPrefix}_s" placeholder="0" value="${s}"><span>s</span>
+  </div>`;
+}
+function readTimeInputs(idPrefix){
+  const mEl = document.getElementById(idPrefix + "_m");
+  const sEl = document.getElementById(idPrefix + "_s");
+  const m = mEl.value === "" ? 0 : Number(mEl.value);
+  const s = sEl.value === "" ? 0 : Number(sEl.value);
+  if(mEl.value === "" && sEl.value === "") return null;
+  return m*60 + s;
+}
+
+function renderIndividualForm(game, data, rankMap, isTime){
+  const scores = data.scores || {};
+  let html = `<div class="card">`;
+  teams.forEach(t => {
+    const rank = rankMap[t.id];
+    html += `<div class="team-row">
+      <div class="row" style="gap:10px; flex:1;">
+        <span class="rank-tag ${rank === 1 ? "top" : ""}">${rank ? rank + "e" : "–"}</span>
+        <span class="team-name">${esc(t.name)}</span>
+      </div>
+      ${isTime ? timeInputs("ind_" + t.id, scores[t.id])
+               : `<input type="number" id="ind_${t.id}" placeholder="0" value="${scores[t.id] !== undefined && scores[t.id] !== null ? scores[t.id] : ""}">`}
+    </div>`;
+  });
+  html += `</div>`;
+  return html;
+}
+
+function renderTimeVolumeForm(game, data, rankMap){
+  const scores = data.scores || {};
+  let html = `<div class="info-note">Classement : d'abord le temps le plus petit, puis en cas d'égalité le volume d'eau restant le plus élevé.</div><div class="card">`;
+  teams.forEach(t => {
+    const rank = rankMap[t.id];
+    const s = scores[t.id] || {};
+    html += `<div class="team-row" style="flex-direction:column; align-items:stretch; gap:8px;">
+      <div class="row">
+        <div class="row" style="gap:10px;">
+          <span class="rank-tag ${rank === 1 ? "top" : ""}">${rank ? rank + "e" : "–"}</span>
+          <span class="team-name">${esc(t.name)}</span>
+        </div>
+      </div>
+      <div class="row" style="padding-left:32px;">
+        ${timeInputs("vol_" + t.id, s.time)}
+        <div class="row" style="gap:5px;"><input type="number" id="volml_${t.id}" placeholder="0" value="${s.volume !== undefined && s.volume !== null ? s.volume : ""}"><span class="unit-label">mL</span></div>
+      </div>
+    </div>`;
+  });
+  html += `</div>`;
+  return html;
+}
+
+function renderDuelForm(game, data, rankMap){
+  const matches = data.matches || {};
+  let html = "";
+  game.pairs.forEach((pair, idx) => {
+    const teamA = teamById(pair[0]), teamB = teamById(pair[1]);
+    const m = matches[idx] || {};
+    const rA = rankMap[pair[0]], rB = rankMap[pair[1]];
+    html += `<div class="duel-pair">
+      <div class="duel-side">
+        <span class="name">${esc(teamA.name)}</span>
+        ${game.isTime ? timeInputs("duel_" + idx + "_A", m.scoreA)
+                      : `<input type="number" id="duel_${idx}_A" placeholder="0" value="${m.scoreA !== undefined && m.scoreA !== null ? m.scoreA : ""}">`}
+      </div>
+      <div class="vs">CONTRE</div>
+      <div class="duel-side">
+        <span class="name">${esc(teamB.name)}</span>
+        ${game.isTime ? timeInputs("duel_" + idx + "_B", m.scoreB)
+                      : `<input type="number" id="duel_${idx}_B" placeholder="0" value="${m.scoreB !== undefined && m.scoreB !== null ? m.scoreB : ""}">`}
+      </div>
+      ${rA && rB ? `<div class="vs" style="margin-top:6px;">${rA < rB ? `<span class="win-tag">${esc(teamA.name)} gagne</span>` : `<span class="win-tag">${esc(teamB.name)} gagne</span>`}</div>` : ""}
+    </div>`;
+  });
+  return html;
+}
+
+/* ============================= SAVE / RESET (with confirmation) ============================= */
+
+function showModal(title, desc, listItems, onConfirm){
+  const overlay = document.createElement("div");
+  overlay.className = "overlay";
+  overlay.innerHTML = `<div class="modal">
+    <h3>${esc(title)}</h3>
+    <p>${esc(desc)}</p>
+    ${listItems && listItems.length ? "<ul>" + listItems.map(li => `<li>${li}</li>`).join("") + "</ul>" : ""}
+    <button class="btn" id="modalConfirm">Confirmer</button>
+    <button class="btn secondary" id="modalCancel">Annuler</button>
+  </div>`;
+  document.body.appendChild(overlay);
+  document.getElementById("modalConfirm").addEventListener("click", () => { document.body.removeChild(overlay); onConfirm(); });
+  document.getElementById("modalCancel").addEventListener("click", () => document.body.removeChild(overlay));
+}
+
+function showToast(msg){
+  const t = document.createElement("div");
+  t.className = "toast"; t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2200);
+}
+
+function confirmSaveGame(game){
+  const summary = [];
+  let newData = {};
+
+  if(game.type === "duel"){
+    const matches = {};
+    game.pairs.forEach((pair, idx) => {
+      const a = game.isTime ? readTimeInputs("duel_" + idx + "_A") : (document.getElementById("duel_" + idx + "_A").value === "" ? null : Number(document.getElementById("duel_" + idx + "_A").value));
+      const b = game.isTime ? readTimeInputs("duel_" + idx + "_B") : (document.getElementById("duel_" + idx + "_B").value === "" ? null : Number(document.getElementById("duel_" + idx + "_B").value));
+      if(a !== null || b !== null){
+        matches[idx] = { scoreA: a, scoreB: b };
+        const tA = teamById(pair[0]).name, tB = teamById(pair[1]).name;
+        summary.push(`${esc(tA)} vs ${esc(tB)} : ${game.isTime ? fmtTime(a) : a} – ${game.isTime ? fmtTime(b) : b}`);
+      }
+    });
+    newData = { matches };
+  } else if(game.type === "individual_time_volume"){
+    const scores = {};
+    teams.forEach(t => {
+      const time = readTimeInputs("vol_" + t.id);
+      const volEl = document.getElementById("volml_" + t.id);
+      const volume = volEl.value === "" ? null : Number(volEl.value);
+      if(time !== null || volume !== null){
+        scores[t.id] = { time, volume };
+        summary.push(`${esc(t.name)} : ${fmtTime(time)}${volume !== null ? ", " + volume + " mL" : ""}`);
+      }
+    });
+    newData = { scores };
+  } else {
+    const scores = {};
+    teams.forEach(t => {
+      let v;
+      if(game.type === "individual_time"){ v = readTimeInputs("ind_" + t.id); }
+      else { const el = document.getElementById("ind_" + t.id); v = el.value === "" ? null : Number(el.value); }
+      if(v !== null){
+        scores[t.id] = v;
+        summary.push(`${esc(t.name)} : ${game.type === "individual_time" ? fmtTime(v) : v}`);
+      }
+    });
+    newData = { scores };
+  }
+
+  if(summary.length === 0){ showToast("Aucune valeur saisie"); return; }
+
+  showModal(
+    "Confirmer — " + game.name,
+    "Vous allez enregistrer les résultats suivants pour ce jeu :",
+    summary,
+    async () => {
+      const success = await storageSet("game_" + game.id, newData);
+      if(success){
+        results[game.id] = newData;
+        showToast("Résultats enregistrés ✓");
+        renderGameDetail();
+      } else {
+        showToast("Échec de l'enregistrement, réessayez");
+      }
+    }
+  );
+}
+
+function confirmResetGame(game){
+  showModal(
+    "Réinitialiser — " + game.name,
+    "Tous les résultats déjà saisis pour ce jeu seront effacés. Cette action est irréversible.",
+    null,
+    async () => {
+      const success = await storageSet("game_" + game.id, {});
+      if(success){
+        results[game.id] = {};
+        showToast("Jeu réinitialisé");
+        renderGameDetail();
+      }
+    }
+  );
+}
+
+/* ============================= RENDER: EQUIPES ============================= */
+
+function renderEquipes(){
+  let html = `<div class="section-label">Noms des équipes</div><div class="card">`;
+  teams.forEach(t => {
+    html += `<div class="team-row">
+      <input type="text" class="team-name-input" id="teamname_${t.id}" value="${esc(t.name)}">
+    </div>`;
+  });
+  html += `</div>
+    <button class="btn" id="saveTeamsBtn">Enregistrer les noms</button>
+    <div class="section-label" style="margin-top:26px;">Zone avancée</div>
+    <button class="btn danger" id="resetAllBtn">Réinitialiser tous les résultats</button>`;
+
+  document.getElementById("app").innerHTML = html;
+  document.getElementById("headerSub").textContent = "Modifiable par tous les arbitres";
+
+  document.getElementById("saveTeamsBtn").addEventListener("click", () => {
+    const updated = teams.map(t => ({ id: t.id, name: document.getElementById("teamname_" + t.id).value.trim() || t.name }));
+    showModal("Confirmer les noms d'équipes", "Ces noms seront visibles par tous les arbitres et organisateurs.", null, async () => {
+      const success = await storageSet("teams", updated);
+      if(success){ teams = updated; showToast("Noms enregistrés ✓"); renderEquipes(); }
+    });
+  });
+
+  document.getElementById("resetAllBtn").addEventListener("click", () => {
+    showModal("Tout réinitialiser", "Les résultats des 10 jeux seront effacés pour toutes les équipes. Cette action est irréversible.", null, async () => {
+      for(const g of GAMES){ await storageSet("game_" + g.id, {}); results[g.id] = {}; }
+      showToast("Toutes les données ont été réinitialisées");
+      switchTab("classement");
+    });
+  });
+}
+
+/* ============================= NAV ============================= */
+
+function switchTab(tab){
+  currentTab = tab;
+  currentGameId = null;
+  document.querySelectorAll("nav.tabbar button").forEach(b => b.classList.toggle("active", b.getAttribute("data-tab") === tab));
+  renderCurrent();
+}
+
+function renderCurrent(){
+  if(currentGameId !== null){ renderGameDetail(); return; }
+  if(currentTab === "classement") renderClassement();
+  else if(currentTab === "jeux") renderJeuxList();
+  else if(currentTab === "equipes") renderEquipes();
+}
+
+document.querySelectorAll("nav.tabbar button").forEach(b => {
+  b.addEventListener("click", () => switchTab(b.getAttribute("data-tab")));
+});
+
+/* ============================= INIT ============================= */
+
+document.getElementById("headerSub").textContent = "Connexion au serveur…";
+attachRealtimeListeners();
+</script>
+</body>
+</html>
